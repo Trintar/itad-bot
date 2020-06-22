@@ -9,9 +9,7 @@ module.exports = {
     name: 'itad',
     description: 'Is there any deal?',
     async execute(message, args) {
-        console.log('hi');
         const game = args.join(' ');
-        // const game = message.content.split(' ').filter((d, i) => i > 0).join(' ');
         console.log(`Finding deals for ${game}...`);
         const deals = await itadApi.getDealsFull({
             shops: ['steam', 'gog', 'epic', 'uplay', 'humblestore'],
@@ -29,15 +27,17 @@ module.exports = {
         const deal = results_with_deals[0];
 
         const embed = new Discord.MessageEmbed()
-            .setTitle(results_with_deals[0].title)
-            .setURL(results_with_deals[0].urls.game)
-            // .setDescription(`${results_with_deals[0].title} is currently on sale at ${results_with_deals[0].shop.name} for $${results_with_deals[0].price_new} (${results_with_deals[0].price_cut}% off).`)
-            .setImage(results_with_deals[0].image)
-            .setFooter('IsThereAnyDeal', 'https://i.imgur.com/Y53EOrA.jpg');
-
-        embed.addField(`Sale Price (${deal.shop.name})`, `$${deal.price_new.toString()}`, true);
-        embed.addField(`List Price (${deal.shop.name})`, `$${deal.price_old.toString()}`, true);
-        embed.addField(`Discount (${deal.shop.name})`, `${deal.price_cut.toString()}%`, true);
+            .setTitle(deal.title)
+            .setURL(deal.urls.game)
+            .setImage(deal.image)
+            .setFooter('IsThereAnyDeal', 'https://i.imgur.com/Y53EOrA.jpg')
+            .addFields(
+                { name: 'Sale Price', value: `$${deal.price_new.toString()}`, inline: true },
+                { name: 'List Price', value: `$${deal.price_old.toString()}`, inline: true },
+                { name: 'Discount', value: `${deal.price_cut.toString()}%`, inline: true },
+                { name: 'Store', value: deal.shop.name, inline: true },
+                { name: 'DRM', value: deal.drm.join(' '), inline: true },
+            );
 
         message.channel.send(embed);
     },

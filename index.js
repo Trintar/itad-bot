@@ -1,10 +1,8 @@
 const fs = require('fs');
 const Discord = require('discord.js');
-const { IsThereAnyDealApi } = require('itad-api-client-ts');
-const { prefix, token, itad_key } = require('./config.json');
+const { prefix, token } = require('./config.json');
 
 const client = new Discord.Client();
-const itadApi = new IsThereAnyDealApi(itad_key);
 client.commands = new Discord.Collection();
 const commandFiles = fs.readdirSync('./commands').filter(file => file.endsWith('.js'));
 
@@ -26,15 +24,17 @@ client.on('message', async message => {
     if (!message.content.startsWith(prefix) || message.author.bot) return;
 
     const args = message.content.slice(prefix.length).split(/ +/);
-    const command = args.shift().toLowerCase();
+    const commandName = args.shift().toLowerCase();
 
-    console.log('command:', command);
+    console.log('command:', commandName);
     console.log('args:', args);
 
-    if (!client.commands.has(command)) return;
+    if (!client.commands.has(commandName)) return;
+
+    const command = client.commands.get(commandName);
 
     try {
-        client.commands.get(command).execute(message, args);
+        command.execute(message, args);
     } catch (error) {
         console.error(error);
         message.reply('there was an error trying to execute that command!');
