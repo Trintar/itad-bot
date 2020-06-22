@@ -1,11 +1,20 @@
+const fs = require('fs');
 const Discord = require('discord.js');
-const client = new Discord.Client();
+const { IsThereAnyDealApi } = require('itad-api-client-ts');
 const { prefix, token, itad_key } = require('./config.json');
 
-// ITAD
-const { IsThereAnyDealApi } = require('itad-api-client-ts');
-
+const client = new Discord.Client();
 const itadApi = new IsThereAnyDealApi(itad_key);
+client.commands = new Discord.Collection();
+const commandFiles = fs.readdirSync('./commands').filter(file => file.endsWith('.js'));
+
+for (const file of commandFiles) {
+    const command = require(`./commands/${file}`);
+
+    // set a new item in the Collection
+    // with the key as the command name and the value as the exported module
+    client.commands.set(command.name, command);
+}
 
 client.once('ready', () => {
     console.log('Ready!');
@@ -14,46 +23,21 @@ client.once('ready', () => {
 client.login(token);
 
 client.on('message', async message => {
-    if (message.content.startsWith(`${prefix}ping`)) {
-        message.channel.send('pong');
+    if (!message.content.startsWith(prefix) || message.author.bot) return;
+
+    const args = message.content.slice(prefix.length).split(/ +/);
+    const command = args.shift().toLowerCase();
+
+    console.log('command:', command);
+    console.log('args:', args);
+
+    if (!client.commands.has(command)) return;
+
+    try {
+        client.commands.get(command).execute(message, args);
+    } catch (error) {
+        console.error(error);
+        message.reply('there was an error trying to execute that command!');
     }
 
-    if (message.content.startsWith(`${prefix}itad`)) {
-        const game = message.content.split(' ').filter((d, i) => i > 0).join(' ');
-        console.log(`Finding deals for ${game}...`);
-        const deals = await itadApi.getDealsFull({
-            shops: ['steam', 'gog', 'epic', 'uplay', 'humblestore'],
-        }, game);
-
-        console.log('deals:', deals.list.filter(deal => deal.price_cut > 0));
-
-        const results_with_deals = deals.list.filter(deal => deal.price_cut > 0);
-
-        if (results_with_deals.length === 0) {
-            message.channel.send('The game is currently not on sale.');
-            return;
-        }
-
-        const deal = results_with_deals[0];
-
-        const embed = new Discord.MessageEmbed()
-            .setTitle(results_with_deals[0].title)
-            .setURL(results_with_deals[0].urls.game)
-            // .setDescription(`${results_with_deals[0].title} is currently on sale at ${results_with_deals[0].shop.name} for $${results_with_deals[0].price_new} (${results_with_deals[0].price_cut}% off).`)
-            .setImage(results_with_deals[0].image)
-            .setFooter('IsThereAnyDeal', 'https://i.imgur.com/Y53EOrA.jpg');
-
-        embed.addField(`Sale Price (${deal.shop.name})`, `$${deal.price_new.toString()}`, true);
-        embed.addField(`List Price (${deal.shop.name})`, `$${deal.price_old.toString()}`, true);
-        embed.addField(`Discount (${deal.shop.name})`, `${deal.price_cut.toString()}%`, true);
-
-        message.channel.send(embed);
-    } else if (message.content === `${prefix}server`) {
-        message.channel.send(
-            new Discord.MessageEmbed()
-                .addField('Server name', message.guild.name)
-                .addField('Total members', message.guild.memberCount)
-                .addField('Date created', message.guild.createdAt),
-        );
-    }
 });
