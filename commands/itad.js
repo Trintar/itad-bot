@@ -15,16 +15,18 @@ module.exports = {
             shops: ['steam', 'gog', 'epic', 'uplay', 'humblestore'],
         }, game);
 
-        console.log('deals:', deals.list.filter(deal => deal.price_cut > 0));
+        console.log('deals:', deals);
 
-        const results_with_deals = deals.list.filter(deal => deal.price_cut > 0);
+        // const results_with_deals = deals.list.filter(deal => deal.price_cut > 0);
 
-        if (results_with_deals.length === 0) {
-            message.channel.send('The game is currently not on sale.');
-            return;
-        }
+        // if (results_with_deals.length === 0) {
+        //     message.channel.send('The game is currently not on sale.');
+        //     return;
+        // }
 
-        const deal = results_with_deals[0];
+        const deal = deals.list[0];
+
+        console.log('reviews:', deal.reviews);
 
         const embed = new Discord.MessageEmbed()
             .setTitle(deal.title)
@@ -38,6 +40,10 @@ module.exports = {
                 { name: 'Store', value: deal.shop.name, inline: true },
                 { name: 'DRM', value: deal.drm.join(' '), inline: true },
             );
+
+        if (deal.reviews.steam) {
+            embed.addField('Steam Review', `${deal.reviews.steam.perc_positive}% (${deal.reviews.steam.text})`, false);
+        }
 
         message.channel.send(embed);
     },
